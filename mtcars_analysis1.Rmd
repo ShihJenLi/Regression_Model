@@ -1,0 +1,124 @@
+---
+title: "Motor Trend Data Evaluation"
+author: "Regression Model Project Assignment"
+output: pdf_document
+---
+### Executive Summary
+
+In this project, we analyze the data from  Motor Trend to answer the following qustions and provide additional observations as the data analysis warranted. 
+
+
+1. Is an automatic or manual transmission better for <code>mpg</code>?
+
+    + Based on the data on hand, manual transmission does perform better than automatic transmision given all other factors are equal.
+  
+2. Quantifying how different is the <code>mpg</code> between 'Automatic' and 'Manual' transmissions?
+
+    + In average, the manual transmission is at approximately 7 miles per gallon advantages compare to autmatic transmision. Howerever, other factors of automobile, such as weight, cylinder, and horse power, can confound the miliage per gallon performance. Based on the modeling result below, those factors are significantly influnce the mpg results.  
+
+### Data Loading and Transforming
+
+As review the data, there are 32 observations with 11 variables. All the data are in numberic format, we are going to transform those variables known to be the characteristics of an autombile by factoing the data.  
+
+```{r loading, cache=TRUE, echo=FALSE}
+data(mtcars)
+mtcars$cyl <- factor(mtcars$cyl)
+mtcars$vs <- factor(mtcars$vs)
+mtcars$gear <- factor(mtcars$gear)
+mtcars$carb <- factor(mtcars$carb)
+mtcars$am <- factor(mtcars$am,labels=c('Automatic','Manual'))
+```
+```{r echo =FALSE}
+str(mtcars)
+```
+
+### Exploratory Data Analysis
+
+Since the primary interest is about the transmission performance evaluated by miles per gallon.  We first plot the boxplot in Appendix 1 to explore the difference between automatic and manual.  As the plot shows the amount of differences is significant. We decide to run a t-test between auto and manual transmission against mpg assume that the variance are the same.
+
+```{r ttest, cache=TRUE, echo=FALSE}
+t.test(mpg ~ am, data = mtcars)
+```
+The p-value in the t-test is 0.0014 signifincant less than 0.05, we reject the null hypothesis that there is not differences between types of transmission. However, there are factors in the data set that is interesting to us, we plot a pairwise scatterplot to further ecplore the relationship between 'mpg' and other variables.
+
+As seen in Appendix 2, the cyl, disp, hp and wt seems have either positive or negative impact to the mpg.  We will explore those variable relationship against mpg in the following analysis while we develop the linear models.
+
+
+### Regression Analysis
+
+In this section, we will build linear regression models by applying stepwise method to identify the best model 
+
+#### Establish the models
+  Include, the base model(model_0), initial model(model_1), and best model(model_c).
+
+```{r modelling, cache=FALSE, results='hide'}
+model_0 <- lm(mpg ~ am, data = mtcars)
+model_1 <- lm(mpg ~ ., data = mtcars)
+model_c <- step(model_1, direction = "backward")
+
+```
+```{r best model, echo=FALSE}
+summary(model_c)
+
+```
+As show in the results above, with R-square = 0.84, the selected variables have interprete the 84% variablity among all variables. In next step, we will evaluate the base model agianst choice model to see if the choice model is better performer than the base model.
+
+```{r}
+anova(model_0, model_c)
+
+```
+#### Residuals Analysi and Diagnostics
+
+Residual Analysis is performed of the model of choice to see the fitness of the suggested model, also to identify the potential outliers to readjust the model.
+
+Figure 1. residuals analysis plots
+
+```{r plot_residuals, echo=FALSE, fig.width=10, fig.height=10}
+par(mfrow=c(2,2))
+plot(model_c, which=1)
+plot(model_c, which=2)
+plot(model_c, which=3)
+plot(model_c, which=5)
+```
+Conclusions:
+
+- The Residuals vs Fitted plot verify the randomness of the data collected.
+- The residual data are nomorlly distributed.
+- In the Scale-Location plot the points are in a constant band pattern, indicating constant variance.
+- The Residuals vs Leverage plot shows the concern of Toyota Corolla, Chrysler Imperial, and Toyota Corona.
+
+Here computes the regression diagnostics of the choice model to find out the results of leverage points. 
+
+```{r leverage, cache=TRUE}
+lev <- hatvalues(model_c)
+tail(sort(lev),3)
+inf <- dfbetas(model_c)
+tail(sort(inf[,6]),3)
+```
+### Conclusions
+
+
+- Miles per gallon(mpg) potentially will increase by 1.81 more with 'Manual' transmission than 'Automatic' transmission 
+- Miles per gallon (mpg) potentially will decrease by 2.5 for every 1000 lb of increase.
+- Miles per gallon (mpg) decreases with increase of <code>hp</code>.
+- Miles per gallon(mpg) will decrease by a factor of 3 and 2.2 if number of cylinders <code>cyl</code> increases from 4 to 6 and 8, respectively (adjusted by <code>hp</code>, <code>wt</code>, and <code>am</code>).
+
+
+### Appendix
+
+Appendix 1. Boxplot for mpg by type of transmission
+
+```{r boxplot,  fig.width=4,fig.height=4, echo=FALSE}
+boxplot(mpg ~ am, data=mtcars,
+   xlab="Transmission type", ylab="Miles Per Gallon") 
+```
+
+Appeneix 2. Scatterplot for all Variables in mtcars 
+
+```{r scatterplot, fig.width=10, fig.height=10, cache=TRUE, warning=FALSE, cache.lazy=FALSE, message=FALSE, echo=FALSE}
+
+pairs(~mpg+cyl+disp+hp+drat+wt+qsec+vs+am+gear+carb, data=mtcars,
+   main="Motor Trend Cars Scatterplot")
+```
+
+
